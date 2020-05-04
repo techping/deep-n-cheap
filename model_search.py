@@ -629,7 +629,7 @@ def dropout_mlp(num_hidden_layers, drop_probs = [0,0.1,0.2,0.3,0.4,0.5], loss_kw
 # EXECUTION
 # =============================================================================
 def run_model_search_cnn(data, dataset_code,
-                         input_size, output_size, verbose,
+                         input_size, output_size, problem_type, verbose,
                          wc, tbar_epoch, numepochs, val_patience,
                          bo_prior_states, bo_steps, bo_explore, grid_search_order,
                          num_conv_layers, channels_first, channels_upper, lr, weight_decay, batch_size,
@@ -641,6 +641,7 @@ def run_model_search_cnn(data, dataset_code,
         'data': data,
         'input_size': input_size,
         'output_size': output_size,
+        'problem_type': problem_type,
         'verbose': verbose
         }
     
@@ -891,7 +892,7 @@ def run_model_search_cnn(data, dataset_code,
         
         
 def run_model_search_mlp(data, dataset_code,
-                         input_size, output_size, verbose,
+                         input_size, output_size, problem_type, verbose,
                          wc, penalize, tbar_epoch, numepochs, val_patience,
                          bo_prior_states, bo_steps, bo_explore,
                          num_hidden_layers, hidden_nodes, lr, weight_decay, batch_size,
@@ -903,6 +904,7 @@ def run_model_search_mlp(data, dataset_code,
         'data': data,
         'input_size': input_size,
         'output_size': output_size,
+        'problem_type': problem_type,
         'verbose': verbose
         }
     

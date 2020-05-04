@@ -122,8 +122,10 @@ def get_data_npz(data_folder = './', dataset = 'fmnist.npz', val_split = 1/5):
     loaded = np.load(os.path.join(data_folder, dataset))
     xtr = loaded['xtr']
     ytr = loaded['ytr']
+    # ytr = ytr.reshape((ytr.shape[0], -1))
     xte = loaded['xte']
     yte = loaded['yte']
+    # yte = yte.reshape((yte.shape[0], -1))
     
     ## Val split ##
     if val_split != 0:
@@ -134,15 +136,15 @@ def get_data_npz(data_folder = './', dataset = 'fmnist.npz', val_split = 1/5):
         ytr = ytr[:split]
     
     ## Convert to tensors on device ##
-    xtr = torch.as_tensor(xtr, dtype=torch.float, device=device)
-    ytr = torch.as_tensor(ytr, dtype=torch.long, device=device)
-    xte = torch.as_tensor(xte, dtype=torch.float, device=device)
-    yte = torch.as_tensor(yte, dtype=torch.long, device=device)
+    xtr = torch.as_tensor(xtr, device=device)
+    ytr = torch.as_tensor(ytr, device=device)
+    xte = torch.as_tensor(xte, device=device)
+    yte = torch.as_tensor(yte, device=device)
     if abs(val_split) < 1e-8:
         # val_spilt is 0.0
         return xtr,ytr, xte,yte, xte,yte
     else:
-        xva = torch.as_tensor(xva, dtype=torch.float, device=device)
-        yva = torch.as_tensor(yva, dtype=torch.long, device=device)
+        xva = torch.as_tensor(xva, device=device)
+        yva = torch.as_tensor(yva, device=device)
         return xtr,ytr, xva,yva, xte,yte
         

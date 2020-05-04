@@ -284,7 +284,7 @@ def save_net(net = None, recs = None, filename = './results_new/new'):
 # Main method to run network
 # =============================================================================
 def run_network(
-                data, input_size, output_size, net_kw, run_kw,
+                data, input_size, output_size, problem_type, net_kw, run_kw,
                 num_workers = 8, pin_memory = True,
                 validate = True, val_patience = np.inf, test = False, ensemble = False,
                 numepochs = 100,
@@ -346,7 +346,10 @@ def run_network(
     if not isinstance(batch_size,int):
         batch_size = batch_size.item() #this is required for pytorch
     
-    lossfunc = nn.CrossEntropyLoss(reduction='mean') ## IMPORTANT: By default, loss is AVERAGED across samples in a batch. If sum is desired, set reduction='sum'
+    if problem_type == 'classification':
+        lossfunc = nn.CrossEntropyLoss(reduction='mean') ## IMPORTANT: By default, loss is AVERAGED across samples in a batch. If sum is desired, set reduction='sum'
+    elif problem_type == 'regression':
+        lossfunc = nn.MSELoss()
     opt = torch.optim.Adam(net.parameters(), lr=lr, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(opt, milestones=[int(numepochs*milestone) for milestone in milestones], gamma=gamma)
 
