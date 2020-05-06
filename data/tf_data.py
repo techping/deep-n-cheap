@@ -11,14 +11,22 @@ import os
 def get_data(data_folder = './', dataset = "mnist", val_split = 1/5, augment = True):
     if dataset == 'mnist':
         (xtr, ytr), (xte, yte) = tf.keras.datasets.mnist.load_data()
-        xtr = xtr.reshape((xtr.shape[0], -1))
-        xte = xte.reshape((xte.shape[0], -1))
+        xtr = xtr.reshape((xtr.shape[0], 28, 28, 1)).astype('float')/255.
+        xtr = xtr[:10]
+        xte = xte.reshape((xte.shape[0], 28, 28, 1)).astype('float')/255.
+        xte = xte[:10]
+        ytr = ytr[:10]
+        yte = yte[:10]
     elif dataset == 'fmnist':
         (xtr, ytr), (xte, yte) = tf.keras.datasets.fashion_mnist.load_data()
         xtr = xtr.reshape((xtr.shape[0], -1))
         xte = xte.reshape((xte.shape[0], -1))
     elif dataset == 'cifar10':
         (xtr, ytr), (xte, yte) = tf.keras.datasets.cifar10.load_data()
+        xtr = xtr.astype('float')[:10] / 255.
+        ytr = ytr[:10]
+        xte = xte.astype('float')[:10] / 255.
+        yte = yte[:10]
     elif dataset == 'cifar100':
         (xtr, ytr), (xte, yte) = tf.keras.datasets.cifar100.load_data()
     else:

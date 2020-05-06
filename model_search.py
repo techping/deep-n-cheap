@@ -537,7 +537,7 @@ def batch_norm(numlayers, fracs=[0, 0.25, 0.5, 0.75], loss_kw={}):
     return best_state, best_loss, best_loss_stats
 
 
-def activation(numlayers, fracs = [0.2, 0.3, 0.4,0.6,0.8,1], loss_kw = {}):
+def activation(numlayers, fracs = None, loss_kw = {}):
     '''
     Apply chosen activation function in certain layers
     Grid search on activation function position and genre
@@ -546,28 +546,11 @@ def activation(numlayers, fracs = [0.2, 0.3, 0.4,0.6,0.8,1], loss_kw = {}):
     loss_stats = []
     losses = np.asarray([])
 
-    act_len = len(activations)-1
-    upper = numlayers * act_len if numlayers * act_len>0 else 0
-
-    for layer in range(upper//2):
-        apply_act = np.zeros(upper)
-
-        for frac in fracs:
-
-            if frac != 0:
-                num = int(np.ceil(frac * upper))
-                intervals = np.arange(numlayers / num, upper + 0.001, numlayers / num,
-                                      dtype='half')  # use dtype=half to avoid numerical issues
-                intervals = np.ceil(intervals).astype('int')
-                apply_act[intervals - 1] = 1
-
-                apply_act.reshape(numlayers, act_len)
-                apply_act = np.sum(apply_act, axis=0)
-
-                states.append({'act_f': apply_act})
-                loss_stats.append( lossfunc(state=states, **loss_kw))
-                losses = np.append( losses, loss_stats[-1]['loss'] )
-                print('State = {0}, Loss = {1}\n'.format(states[-1], losses[-1]))
+    for act in activations.keys():
+        states.append({'act': act})
+        loss_stats.append( lossfunc(state=states[-1], **loss_kw))
+        losses = np.append( losses, loss_stats[-1]['loss'] )
+        print('State = {0}, Loss = {1}\n'.format(states[-1], losses[-1]))
     
     best_pos, best_loss = np.argmin(losses), np.min(losses)
     best_state, best_loss_stats = states[best_pos], loss_stats[best_pos]
@@ -904,7 +887,8 @@ def run_model_search_cnn(data, dataset_code,
                                                                         'dataset_code': dataset_code,
                                                                         'run_network_kw': run_network_kw,
                                                                         'wc': wc,
-                                                                        'tbar_epoch': tbar_epoch
+                                                                        'tbar_epoch': tbar_epoch,
+                                                                        'problem_type': problem_type
                                                                     }
                                                         )
             if best_loss < the_best_loss:
