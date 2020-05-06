@@ -41,10 +41,10 @@ run_kws_defaults = {
 
 
 activations = {
-               'relu': tf.keras.layers.Activation('relu'),
-               'tanh': tf.keras.layers.Activation('tanh'),
-               'sigmoid': tf.keras.layers.Activation('sigmoid'),
-               'prelu': tf.keras.layers.Activation('prelu'),
+               'relu': tf.keras.layers.ReLU,
+               'tanh': tf.keras.layers.tanh,
+               'sigmoid': tf.keras.layers.sigmoid,
+               'prelu': tf.keras.layers.PReLU,
               }
 
 class Net(tf.keras.Model):
@@ -129,7 +129,7 @@ class Net(tf.keras.Model):
             if self.apply_bns[i] == 1:
                 self.conv['bn-{0}'.format(i)] = tf.keras.layers.BatchNormalization()
 
-            self.conv['act-{0}'.format(i)] = activations[self.act]()
+            self.conv['act-{0}'.format(i)] = activations[self.act]
 
             if self.apply_dropouts[i] == 1:
                 self.conv['drop-{0}'.format(i)] = tf.keras.layers.Dropout(self.dropout_probs[dropout_index])
