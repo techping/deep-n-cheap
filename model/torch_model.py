@@ -116,7 +116,6 @@ class Net(nn.Module):
         self.shortcuts = kw['shortcuts'] if 'shortcuts' in kw else self.num_layers_conv*net_kws_defaults['shortcuts']
         
         dropout_index = 0
-        activation_index = 0
         self.conv = nn.ModuleDict({})
         for i in range(self.num_layers_conv):
             self.conv['conv-{0}'.format(i)] = nn.Conv2d(

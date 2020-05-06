@@ -546,7 +546,7 @@ def activation(numlayers, fracs = None, loss_kw = {}):
     loss_stats = []
     losses = np.asarray([])
 
-    for act in activations.keys():
+    for act in nn_activations.keys():
         states.append({'act': act})
         loss_stats.append( lossfunc(state=states[-1], **loss_kw))
         losses = np.append( losses, loss_stats[-1]['loss'] )
@@ -746,134 +746,134 @@ def run_model_search_cnn(data, dataset_code,
     ## Sub-stages ##
     for ss in grid_search_order:
         
-        # if ss=='ds': ## downsample ##
-        #     print('STARTING downsampling: strides vs maxpools')
-        #     best_state, best_loss, loss_stats = downsample(
-        #                                                     apply_maxpools = the_best_state['apply_maxpools'],
-        #                                                     loss_kw = {
-        #                                                                 'net_kw_const': the_best_state,
-        #                                                                 'run_kw_const': {},
-        #                                                                 'val_patience': val_patience,
-        #                                                                 'numepochs': numepochs,
-        #                                                                 'dataset_code': dataset_code,
-        #                                                                 'run_network_kw': run_network_kw,
-        #                                                                 'wc': wc,
-        #                                                                 'tbar_epoch': tbar_epoch,
-        #                                                                 'problem_type': problem_type
-        #                                                             }
-        #                                                      )
-        #     if best_loss < the_best_loss:
-        #         the_best_state.update(best_state)
-        #         the_best_loss = best_loss
-        #         if problem_type == 'classification':
-        #             the_best_loss_val_acc = loss_stats['best_val_acc']
-        #         elif problem_type == 'regression':
-        #             the_best_loss_val_loss = loss_stats['best_val_loss']
-        #         the_best_loss_t_epoch = loss_stats['t_epoch']
-        #     else:
-        #         the_best_state.update({'strides':numlayers*net_kws_defaults['strides']})
-        #     if problem_type == 'classification':
-        #         print('BEST STATE: {0}, BEST LOSS = {1}, corresponding BEST VAL_ACC = {2} and T_EPOCH = {3}, TOTAL SEARCH TIME = {4}\n\n'.format(the_best_state, the_best_loss, the_best_loss_val_acc, the_best_loss_t_epoch, time.time()-start_time+prior_time))
-        #     elif problem_type == 'regression':
-        #         print('BEST STATE: {0}, BEST LOSS = {1}, corresponding BEST VAL_LOSS = {2} and T_EPOCH = {3}, TOTAL SEARCH TIME = {4}\n\n'.format(the_best_state, the_best_loss, the_best_loss_val_loss, the_best_loss_t_epoch, time.time()-start_time+prior_time))
+        if ss=='ds': ## downsample ##
+            print('STARTING downsampling: strides vs maxpools')
+            best_state, best_loss, loss_stats = downsample(
+                                                            apply_maxpools = the_best_state['apply_maxpools'],
+                                                            loss_kw = {
+                                                                        'net_kw_const': the_best_state,
+                                                                        'run_kw_const': {},
+                                                                        'val_patience': val_patience,
+                                                                        'numepochs': numepochs,
+                                                                        'dataset_code': dataset_code,
+                                                                        'run_network_kw': run_network_kw,
+                                                                        'wc': wc,
+                                                                        'tbar_epoch': tbar_epoch,
+                                                                        'problem_type': problem_type
+                                                                    }
+                                                             )
+            if best_loss < the_best_loss:
+                the_best_state.update(best_state)
+                the_best_loss = best_loss
+                if problem_type == 'classification':
+                    the_best_loss_val_acc = loss_stats['best_val_acc']
+                elif problem_type == 'regression':
+                    the_best_loss_val_loss = loss_stats['best_val_loss']
+                the_best_loss_t_epoch = loss_stats['t_epoch']
+            else:
+                the_best_state.update({'strides':numlayers*net_kws_defaults['strides']})
+            if problem_type == 'classification':
+                print('BEST STATE: {0}, BEST LOSS = {1}, corresponding BEST VAL_ACC = {2} and T_EPOCH = {3}, TOTAL SEARCH TIME = {4}\n\n'.format(the_best_state, the_best_loss, the_best_loss_val_acc, the_best_loss_t_epoch, time.time()-start_time+prior_time))
+            elif problem_type == 'regression':
+                print('BEST STATE: {0}, BEST LOSS = {1}, corresponding BEST VAL_LOSS = {2} and T_EPOCH = {3}, TOTAL SEARCH TIME = {4}\n\n'.format(the_best_state, the_best_loss, the_best_loss_val_loss, the_best_loss_t_epoch, time.time()-start_time+prior_time))
     
-        # elif ss=='bn': ## BN ##
-        #     print('STARTING batch norm')
-        #     best_state, best_loss, loss_stats = batch_norm(
-        #                                                     numlayers = numlayers,
-        #                                                     fracs = bn_fracs,
-        #                                                     loss_kw = {
-        #                                                                 'net_kw_const': the_best_state,
-        #                                                                 'run_kw_const': {},
-        #                                                                 'val_patience': val_patience,
-        #                                                                 'numepochs': numepochs,
-        #                                                                 'dataset_code': dataset_code,
-        #                                                                 'run_network_kw': run_network_kw,
-        #                                                                 'wc': wc,
-        #                                                                 'tbar_epoch': tbar_epoch,
-        #                                                                 'problem_type': problem_type
-        #                                                             }
-        #                                                      )
-        #     if best_loss < the_best_loss:
-        #         the_best_state.update(best_state)
-        #         the_best_loss = best_loss
-        #         if problem_type == 'classification':
-        #             the_best_loss_val_acc = loss_stats['best_val_acc']
-        #         elif problem_type == 'regression':
-        #             the_best_loss_val_loss = loss_stats['best_val_loss']
-        #         the_best_loss_t_epoch = loss_stats['t_epoch']
-        #     else:
-        #         the_best_state.update({'apply_bns':numlayers*net_kws_defaults['apply_bns']})
-        #     if problem_type == 'classification':
-        #         print('BEST STATE: {0}, BEST LOSS = {1}, corresponding BEST VAL_ACC = {2} and T_EPOCH = {3}, TOTAL SEARCH TIME = {4}\n\n'.format(the_best_state, the_best_loss, the_best_loss_val_acc, the_best_loss_t_epoch, time.time()-start_time+prior_time))
-        #     elif problem_type == 'regression':
-        #         print('BEST STATE: {0}, BEST LOSS = {1}, corresponding BEST VAL_LOSS = {2} and T_EPOCH = {3}, TOTAL SEARCH TIME = {4}\n\n'.format(the_best_state, the_best_loss, the_best_loss_val_loss, the_best_loss_t_epoch, time.time()-start_time+prior_time))
+        elif ss=='bn': ## BN ##
+            print('STARTING batch norm')
+            best_state, best_loss, loss_stats = batch_norm(
+                                                            numlayers = numlayers,
+                                                            fracs = bn_fracs,
+                                                            loss_kw = {
+                                                                        'net_kw_const': the_best_state,
+                                                                        'run_kw_const': {},
+                                                                        'val_patience': val_patience,
+                                                                        'numepochs': numepochs,
+                                                                        'dataset_code': dataset_code,
+                                                                        'run_network_kw': run_network_kw,
+                                                                        'wc': wc,
+                                                                        'tbar_epoch': tbar_epoch,
+                                                                        'problem_type': problem_type
+                                                                    }
+                                                             )
+            if best_loss < the_best_loss:
+                the_best_state.update(best_state)
+                the_best_loss = best_loss
+                if problem_type == 'classification':
+                    the_best_loss_val_acc = loss_stats['best_val_acc']
+                elif problem_type == 'regression':
+                    the_best_loss_val_loss = loss_stats['best_val_loss']
+                the_best_loss_t_epoch = loss_stats['t_epoch']
+            else:
+                the_best_state.update({'apply_bns':numlayers*net_kws_defaults['apply_bns']})
+            if problem_type == 'classification':
+                print('BEST STATE: {0}, BEST LOSS = {1}, corresponding BEST VAL_ACC = {2} and T_EPOCH = {3}, TOTAL SEARCH TIME = {4}\n\n'.format(the_best_state, the_best_loss, the_best_loss_val_acc, the_best_loss_t_epoch, time.time()-start_time+prior_time))
+            elif problem_type == 'regression':
+                print('BEST STATE: {0}, BEST LOSS = {1}, corresponding BEST VAL_LOSS = {2} and T_EPOCH = {3}, TOTAL SEARCH TIME = {4}\n\n'.format(the_best_state, the_best_loss, the_best_loss_val_loss, the_best_loss_t_epoch, time.time()-start_time+prior_time))
     
-        # elif ss=='do': ## Dropout ##
-        #     print('STARTING dropout')
-        #     done_state = {'apply_dropouts':numlayers*net_kws_defaults['apply_dropouts'], 'dropout_probs':[ *[net_kws_defaults['dropout_probs'][0]], *(numlayers-1)*[net_kws_defaults['dropout_probs'][1]] ]}
-        #     best_state, best_loss, loss_stats = dropout(
-        #                                                     numlayers = numlayers,
-        #                                                     fracs = do_fracs,
-        #                                                     input_drop_probs = input_drop_probs,
-        #                                                     drop_probs = drop_probs,
-        #                                                     loss_kw = {
-        #                                                                 'net_kw_const': the_best_state,
-        #                                                                 'run_kw_const': {},
-        #                                                                 'val_patience': val_patience,
-        #                                                                 'numepochs': numepochs,
-        #                                                                 'dataset_code': dataset_code,
-        #                                                                 'run_network_kw': run_network_kw,
-        #                                                                 'wc': wc,
-        #                                                                 'tbar_epoch': tbar_epoch,
-        #                                                                 'problem_type': problem_type
-        #                                                             },
-        #                                                     done_state = done_state
-        #                                                 )
-        #     if best_loss < the_best_loss:
-        #         the_best_state.update(best_state)
-        #         the_best_loss = best_loss
-        #         if problem_type == 'classification':
-        #             the_best_loss_val_acc = loss_stats['best_val_acc']
-        #         elif problem_type == 'regression':
-        #             the_best_loss_val_loss = loss_stats['best_val_loss']
-        #         the_best_loss_t_epoch = loss_stats['t_epoch']
-        #     else:
-        #         the_best_state.update(done_state)
-        #     if problem_type == 'classification':
-        #         print('BEST STATE: {0}, BEST LOSS = {1}, corresponding BEST VAL_ACC = {2} and T_EPOCH = {3}, TOTAL SEARCH TIME = {4}\n\n'.format(the_best_state, the_best_loss, the_best_loss_val_acc, the_best_loss_t_epoch, time.time()-start_time+prior_time))
-        #     elif problem_type == 'regression':
-        #         print('BEST STATE: {0}, BEST LOSS = {1}, corresponding BEST VAL_LOSS = {2} and T_EPOCH = {3}, TOTAL SEARCH TIME = {4}\n\n'.format(the_best_state, the_best_loss, the_best_loss_val_loss, the_best_loss_t_epoch, time.time()-start_time+prior_time))
+        elif ss=='do': ## Dropout ##
+            print('STARTING dropout')
+            done_state = {'apply_dropouts':numlayers*net_kws_defaults['apply_dropouts'], 'dropout_probs':[ *[net_kws_defaults['dropout_probs'][0]], *(numlayers-1)*[net_kws_defaults['dropout_probs'][1]] ]}
+            best_state, best_loss, loss_stats = dropout(
+                                                            numlayers = numlayers,
+                                                            fracs = do_fracs,
+                                                            input_drop_probs = input_drop_probs,
+                                                            drop_probs = drop_probs,
+                                                            loss_kw = {
+                                                                        'net_kw_const': the_best_state,
+                                                                        'run_kw_const': {},
+                                                                        'val_patience': val_patience,
+                                                                        'numepochs': numepochs,
+                                                                        'dataset_code': dataset_code,
+                                                                        'run_network_kw': run_network_kw,
+                                                                        'wc': wc,
+                                                                        'tbar_epoch': tbar_epoch,
+                                                                        'problem_type': problem_type
+                                                                    },
+                                                            done_state = done_state
+                                                        )
+            if best_loss < the_best_loss:
+                the_best_state.update(best_state)
+                the_best_loss = best_loss
+                if problem_type == 'classification':
+                    the_best_loss_val_acc = loss_stats['best_val_acc']
+                elif problem_type == 'regression':
+                    the_best_loss_val_loss = loss_stats['best_val_loss']
+                the_best_loss_t_epoch = loss_stats['t_epoch']
+            else:
+                the_best_state.update(done_state)
+            if problem_type == 'classification':
+                print('BEST STATE: {0}, BEST LOSS = {1}, corresponding BEST VAL_ACC = {2} and T_EPOCH = {3}, TOTAL SEARCH TIME = {4}\n\n'.format(the_best_state, the_best_loss, the_best_loss_val_acc, the_best_loss_t_epoch, time.time()-start_time+prior_time))
+            elif problem_type == 'regression':
+                print('BEST STATE: {0}, BEST LOSS = {1}, corresponding BEST VAL_LOSS = {2} and T_EPOCH = {3}, TOTAL SEARCH TIME = {4}\n\n'.format(the_best_state, the_best_loss, the_best_loss_val_loss, the_best_loss_t_epoch, time.time()-start_time+prior_time))
     
-        # elif ss=='sc': ## Shortcuts ##
-        #     print('STARTING shortcuts')
-        #     best_state, best_loss, loss_stats = shortcut_conns(
-        #                                                         numlayers = numlayers,
-        #                                                         loss_kw = {
-        #                                                                     'net_kw_const': the_best_state,
-        #                                                                     'run_kw_const': {},
-        #                                                                     'val_patience': val_patience,
-        #                                                                     'numepochs': numepochs,
-        #                                                                     'dataset_code': dataset_code,
-        #                                                                     'run_network_kw': run_network_kw,
-        #                                                                     'wc': wc,
-        #                                                                     'tbar_epoch': tbar_epoch,
-        #                                                                     'problem_type': problem_type
-        #                                                                 }
-        #                                                          )
-        #     if best_loss < the_best_loss:
-        #         the_best_state.update(best_state)
-        #         the_best_loss = best_loss
-        #         if problem_type == 'classification':
-        #             the_best_loss_val_acc = loss_stats['best_val_acc']
-        #         elif problem_type == 'regression':
-        #             the_best_loss_val_loss = loss_stats['best_val_loss']
-        #         the_best_loss_t_epoch = loss_stats['t_epoch']
-        #     # no else block since default shortcuts is already in keys
-        #     if problem_type == 'classification':
-        #         print('BEST STATE: {0}, BEST LOSS = {1}, corresponding BEST VAL_ACC = {2} and T_EPOCH = {3}, TOTAL SEARCH TIME = {4}\n\n'.format(the_best_state, the_best_loss, the_best_loss_val_acc, the_best_loss_t_epoch, time.time()-start_time+prior_time))
-        #     elif problem_type == 'regression':
-        #         print('BEST STATE: {0}, BEST LOSS = {1}, corresponding BEST VAL_LOSS = {2} and T_EPOCH = {3}, TOTAL SEARCH TIME = {4}\n\n'.format(the_best_state, the_best_loss, the_best_loss_val_loss, the_best_loss_t_epoch, time.time()-start_time+prior_time))
+        elif ss=='sc': ## Shortcuts ##
+            print('STARTING shortcuts')
+            best_state, best_loss, loss_stats = shortcut_conns(
+                                                                numlayers = numlayers,
+                                                                loss_kw = {
+                                                                            'net_kw_const': the_best_state,
+                                                                            'run_kw_const': {},
+                                                                            'val_patience': val_patience,
+                                                                            'numepochs': numepochs,
+                                                                            'dataset_code': dataset_code,
+                                                                            'run_network_kw': run_network_kw,
+                                                                            'wc': wc,
+                                                                            'tbar_epoch': tbar_epoch,
+                                                                            'problem_type': problem_type
+                                                                        }
+                                                                 )
+            if best_loss < the_best_loss:
+                the_best_state.update(best_state)
+                the_best_loss = best_loss
+                if problem_type == 'classification':
+                    the_best_loss_val_acc = loss_stats['best_val_acc']
+                elif problem_type == 'regression':
+                    the_best_loss_val_loss = loss_stats['best_val_loss']
+                the_best_loss_t_epoch = loss_stats['t_epoch']
+            # no else block since default shortcuts is already in keys
+            if problem_type == 'classification':
+                print('BEST STATE: {0}, BEST LOSS = {1}, corresponding BEST VAL_ACC = {2} and T_EPOCH = {3}, TOTAL SEARCH TIME = {4}\n\n'.format(the_best_state, the_best_loss, the_best_loss_val_acc, the_best_loss_t_epoch, time.time()-start_time+prior_time))
+            elif problem_type == 'regression':
+                print('BEST STATE: {0}, BEST LOSS = {1}, corresponding BEST VAL_LOSS = {2} and T_EPOCH = {3}, TOTAL SEARCH TIME = {4}\n\n'.format(the_best_state, the_best_loss, the_best_loss_val_loss, the_best_loss_t_epoch, time.time()-start_time+prior_time))
 
         if ss=='ac': ## activation ##
             print('STARTING activation')

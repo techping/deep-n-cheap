@@ -47,9 +47,9 @@ F_activations = {
                 }
 
 nn_activations = {
-                'relu': tf.keras.layers.ReLU,
-                'tanh': tf.keras.layers.tanh,
-                'sigmoid': tf.keras.layers.sigmoid
+                'relu': tf.keras.layers.Activation('relu'),
+                'tanh': tf.keras.layers.Activation('tanh'),
+                'sigmoid': tf.keras.layers.Activation('sigmoid'),
                 }
 
 class Net(tf.keras.Model):
@@ -134,7 +134,7 @@ class Net(tf.keras.Model):
             if self.apply_bns[i] == 1:
                 self.conv['bn-{0}'.format(i)] = tf.keras.layers.BatchNormalization()
 
-            self.conv['act-{0}'.format(i)] = nn_activations[self.act]()
+            self.conv['act-{0}'.format(i)] = nn_activations[self.act]
 
             if self.apply_dropouts[i] == 1:
                 self.conv['drop-{0}'.format(i)] = tf.keras.layers.Dropout(self.dropout_probs[dropout_index])
