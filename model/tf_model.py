@@ -40,11 +40,17 @@ run_kws_defaults = {
                     }
 
 
-activations = {
-               'relu': tf.keras.layers.Activation('relu'),
-               'tanh': tf.keras.layers.Activation('tanh'),
-               'sigmoid': tf.keras.layers.Activation('sigmoid'),
-              }
+F_activations = {
+                'relu': tf.nn.relu,
+                'tanh': tf.nn.tanh,
+                'sigmoid': tf.nn.sigmoid
+                }
+
+nn_activations = {
+                'relu': tf.keras.layers.ReLU,
+                'tanh': tf.keras.layers.tanh,
+                'sigmoid': tf.keras.layers.sigmoid
+                }
 
 class Net(tf.keras.Model):
 
@@ -128,7 +134,7 @@ class Net(tf.keras.Model):
             if self.apply_bns[i] == 1:
                 self.conv['bn-{0}'.format(i)] = tf.keras.layers.BatchNormalization()
 
-            self.conv['act-{0}'.format(i)] = activations[self.act]
+            self.conv['act-{0}'.format(i)] = nn_activations[self.act]()
 
             if self.apply_dropouts[i] == 1:
                 self.conv['drop-{0}'.format(i)] = tf.keras.layers.Dropout(self.dropout_probs[dropout_index])
@@ -151,7 +157,7 @@ class Net(tf.keras.Model):
         dropout_index = 0
         for i in range(1, len(self.n_mlp)):
             if i != len(self.n_mlp) - 1:
-                self.mlp['dense-{0}'.format(i - 1)] = tf.keras.layers.Dense(self.n_mlp[i], activation=activations[self.act])
+                self.mlp['dense-{0}'.format(i - 1)] = tf.keras.layers.Dense(self.n_mlp[i], activation=F_activations[self.act])
                 if self.apply_dropouts_mlp[i - 1] == 1:
                     self.mlp['drop-{0}'.format(i - 1)] = tf.keras.layers.Dropout(self.dropout_probs_mlp[dropout_index])
                     dropout_index += 1

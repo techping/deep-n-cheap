@@ -10,7 +10,7 @@ import sobol_seq
 import pickle
 import itertools
 import time
-from model.model import run_network, get_numparams, net_kws_defaults, run_kws_defaults, activations
+from model.model import run_network, get_numparams, net_kws_defaults, run_kws_defaults, nn_activations
 
 
 # =============================================================================
