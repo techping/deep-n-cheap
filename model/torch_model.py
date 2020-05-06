@@ -46,11 +46,13 @@ F_activations = {
                 'relu': F.relu,
                 'tanh': F.tanh,
                 'sigmoid': F.sigmoid,
-                'prelu': F.prelu
                 }
 
-activations = [nn.ReLU, nn.PReLU, nn.Tanh, nn.Sigmoid]
-
+activations = {
+                'relu': nn.ReLU,
+                'tanh': nn.Tanh,
+                'sigmoid': nn.Sigmoid
+                 }
 
 # =============================================================================
 # Classes
@@ -134,7 +136,7 @@ class Net(nn.Module):
             if self.apply_bns[i] == 1:
                 self.conv['bn-{0}'.format(i)] = nn.BatchNorm2d(self.out_channels[i])
 
-            self.conv['act-{0}'.format(i)] = F_activations[self.act]()
+            self.conv['act-{0}'.format(i)] = activations[self.act]()
             
             if self.apply_dropouts[i] == 1:
                 self.conv['drop-{0}'.format(i)] = nn.Dropout(self.dropout_probs[dropout_index])
