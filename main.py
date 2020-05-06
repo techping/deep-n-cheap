@@ -10,7 +10,7 @@ parser.add_argument("--val_split", type = float, default = 1/5, help = "Fraction
 parser.add_argument("--augment", type = bool, default=True, help = "<CNNs only> Whether to apply basic augmentation")
 parser.add_argument("--input_size", type = int, nargs='+', default=[3,32,32], help = "Dimensions of 1 input data sample")
 parser.add_argument("--output_size", type = int, default=10, help = "Sumber of classes")
-parser.add_argument("--verbose", type = bool, default = False, help = "print messages after every epoch")
+parser.add_argument("--verbose", type = bool, default = True, help = "print messages after every epoch")
 
 parser.add_argument("--wc", type = float, default = 0.1, help = "Complexity penalty coefficient")
 parser.add_argument("--penalize", type = str, default = 't_epoch', help = "<MLPs only> Choose from 't_epoch' for training time per epoch, or 'numparams' for number of trainable parameters (CNNs only support t_epoch)")
@@ -54,17 +54,18 @@ elif args.dl_framework == 'tf.keras':
     os.environ['DNC_DL_FRAMEWORK'] = 'tf.keras'
 else:
     raise Exception("framework not support!!!")
+
 from data.data import get_data_npz, get_data
 from model_search import run_model_search_cnn, run_model_search_mlp
 
 if args.dataset[-4:] == '.npz':
     # use .npz files
     dataset = args.dataset[:-4]
-    data = get_data_npz(data_folder=args.data_folder, dataset=args.dataset, val_split=args.val_split)
+    data = get_data_npz(data_folder=args.data_folder, dataset=args.dataset, val_split=args.val_split, problem_type=args.problem_type)
 else:
     # use framework built-in datasets
     dataset = args.dataset
-    data = get_data(data_folder=args.data_folder, dataset=args.dataset, val_split=args.val_split, augment=args.augment)
+    data = get_data(data_folder=args.data_folder, dataset=args.dataset, val_split=args.val_split, augment=args.augment, network=args.network)
 dataset_code = 'M' if dataset=='mnist' else 'F' if dataset=='fmnist' else 'R' if dataset=='rcv1_2000' else 'XXX'
 
 if args.network == 'cnn':

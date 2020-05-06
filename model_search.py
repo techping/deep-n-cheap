@@ -42,6 +42,7 @@ def default_weight_decay(dataset_code, input_size, output_size, net_kw):
 def form_shortcuts_start_every(numlayers):
     return np.inf if numlayers<=8 else 4 if 9<=numlayers<=14 else 2
 
+
 def form_shortcuts(num_conv_layers, start_from = 0, start_every = 2):
     '''
     start_every: Start the next shortcut this many layers after the previous shortcut started
@@ -1009,6 +1010,8 @@ def run_model_search_mlp(data, dataset_code,
                          num_hidden_layers, hidden_nodes, lr, weight_decay, batch_size,
                          drop_probs,
                          num_best, prior_time):
+
+
 
     ## Data, etc ##
     run_network_kw = {

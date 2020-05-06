@@ -4,38 +4,45 @@
 # =============================================================================
 
 import tensorflow as tf
-import tensorflow_datasets as tfds
 import numpy as np
 import os
 
-def get_data(data_folder = './', dataset = "mnist", val_split = 1/5, augment = True):
+
+def get_data(data_folder = './', dataset = "mnist", val_split = 1/5, augment = True, network='cnn'):
+
     if dataset == 'mnist':
         (xtr, ytr), (xte, yte) = tf.keras.datasets.mnist.load_data()
-        xtr = xtr.reshape((xtr.shape[0], -1))
-        xte = xte.reshape((xte.shape[0], -1))
+        xtr = xtr[:,:,:,np.newaxis]
+        xte = xte[:,:,:,np.newaxis]
+
     elif dataset == 'fmnist':
         (xtr, ytr), (xte, yte) = tf.keras.datasets.fashion_mnist.load_data()
-        xtr = xtr.reshape((xtr.shape[0], -1))
-        xte = xte.reshape((xte.shape[0], -1))
+
     elif dataset == 'cifar10':
         (xtr, ytr), (xte, yte) = tf.keras.datasets.cifar10.load_data()
+
     elif dataset == 'cifar100':
         (xtr, ytr), (xte, yte) = tf.keras.datasets.cifar100.load_data()
+
     else:
         raise Exception("dataset not supported!!!")
 
+    if network == 'mlp':
+        xtr, xte = xtr.reshape((xtr.shape[0], -1)), xte.reshape((xte.shape[0], -1))
+
     if abs(val_split) < 1e-8:
         # val_spilt is 0.0
-        return xtr,ytr, xte,yte, xte,yte
+        return xtr.astype(np.float32), ytr, xte.astype(np.float32), yte, xte.astype(np.float32), yte
     else:
         split = int((1-val_split)*len(xtr))
         xva = xtr[split:]
         yva = ytr[split:]
         xtr = xtr[:split]
         ytr = ytr[:split]
-        return xtr,ytr, xva,yva, xte,yte
+        return xtr.astype(np.float32), ytr, xva.astype(np.float32), yva, xte.astype(np.float32), yte
 
-def get_data_npz(data_folder = './', dataset = 'fmnist.npz', val_split = 1/5):
+
+def get_data_npz(data_folder = './', dataset = 'fmnist.npz', val_split = 1/5, problem_type = 'classfication'):
     '''
     Args:
         data_folder : Location of dataset

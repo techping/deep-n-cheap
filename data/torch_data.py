@@ -14,7 +14,8 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # =============================================================================
 # Data processing
 # =============================================================================
-def get_data(data_folder = './', dataset = "mnist", val_split = 1/5, augment = True):
+
+def get_data(data_folder = './', dataset = "mnist", val_split = 1/5, augment = True, network='cnn'):
     '''
     Args:
         dataset (Method from torchvision.datasets): Currently supports MNIST, FMNIST, CIFAR10, CIFAR100
@@ -96,7 +97,8 @@ def get_data(data_folder = './', dataset = "mnist", val_split = 1/5, augment = T
         test = dataset(root=data_folder, train=False, download=True, transform=transform_valtest)
         return {'train':train, 'val':test, 'test':test} #doesn't matter that we return test as 'test', it won't be used in that sense
 
-def get_data_npz(data_folder = './', dataset = 'fmnist.npz', val_split = 1/5):
+
+def get_data_npz(data_folder = './', dataset = 'fmnist.npz', val_split = 1/5, problem_type = 'classfication'):
     '''
     Args:
         data_folder : Location of dataset
@@ -124,25 +126,39 @@ def get_data_npz(data_folder = './', dataset = 'fmnist.npz', val_split = 1/5):
     ytr = loaded['ytr']
     xte = loaded['xte']
     yte = loaded['yte']
-    
+
+    if problem_type == 'regression' and xtr.ndim == 1:
+        xtr = xtr[:,np.newaxis]
+        xte = xte[:,np.newaxis]
+        ytr = ytr[:,np.newaxis]
+        yte = yte[:,np.newaxis]
     ## Val split ##
-    if val_split != 0:
+    if val_split >= 1e-8:
         split = int((1-val_split)*len(xtr))
         xva = xtr[split:]
         yva = ytr[split:]
         xtr = xtr[:split]
         ytr = ytr[:split]
+
+    else:
+        xva = xte.copy()
+        yva = yte.copy()
+
     
     ## Convert to tensors on device ##
     xtr = torch.as_tensor(xtr, dtype=torch.float, device=device)
-    ytr = torch.as_tensor(ytr, dtype=torch.long, device=device)
     xte = torch.as_tensor(xte, dtype=torch.float, device=device)
-    yte = torch.as_tensor(yte, dtype=torch.long, device=device)
-    if abs(val_split) < 1e-8:
-        # val_spilt is 0.0
-        return xtr,ytr, xte,yte, xte,yte
-    else:
-        xva = torch.as_tensor(xva, dtype=torch.float, device=device)
+    xva = torch.as_tensor(xva, dtype=torch.float, device=device)
+
+    if problem_type == 'classfication':
+        ytr = torch.as_tensor(ytr, dtype=torch.long, device=device)
+        yte = torch.as_tensor(yte, dtype=torch.long, device=device)
         yva = torch.as_tensor(yva, dtype=torch.long, device=device)
-        return xtr,ytr, xva,yva, xte,yte
-        
+
+    elif problem_type == 'regression':
+        ytr = torch.as_tensor(ytr, dtype=torch.float, device=device)
+        yte = torch.as_tensor(yte, dtype=torch.float, device=device)
+        yva = torch.as_tensor(yva, dtype=torch.float, device=device)
+
+    return xtr, ytr, xva, yva, xte, yte
+
