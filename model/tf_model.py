@@ -41,10 +41,10 @@ run_kws_defaults = {
 
 
 activations = {
-               'relu': tf.keras.layers.ReLU,
-               'tanh': tf.keras.activations.tanh,
-               'sigmoid': tf.keras.activations.sigmoid,
-               'prelu': tf.keras.layers.PReLU,
+               'relu': tf.keras.layers.Activation('relu'),
+               'tanh': tf.keras.layers.Activation('tanh'),
+               'sigmoid': tf.keras.layers.Activation('sigmoid'),
+               'prelu': tf.keras.layers.Activation('prelu'),
               }
 
 class Net(tf.keras.Model):
