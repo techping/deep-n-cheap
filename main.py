@@ -3,7 +3,7 @@ import os
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-parser.add_argument("--network", type = str, default='cnn', help = "Choose from 'cnn' or 'mlp'")
+parser.add_argument("--network", type = str, default='cnn', help = "Choose from 'cnn' or 'mlp' or 'rnn'")
 parser.add_argument("--data_folder", type = str, default='./', help = "Path to folder where dataset is stored")
 parser.add_argument("--dataset", type = str, default='mnist', help = "Either something like 'mnist', or something like 'mnist.npz'")
 parser.add_argument("--val_split", type = float, default = 1/5, help = "Fraction of complete training data to use for validation")
@@ -46,6 +46,11 @@ parser.add_argument("--dl_framework", type = str, default = 'torch', help = "Cho
 
 parser.add_argument("--problem_type", type = str, default = 'classification', help = "Choose from 'classification' or 'regression'")
 
+# for RNNs
+parser.add_argument("--num_rnn_layers", type = int, nargs = 2, default = [1,3], metavar = ('lower_limit', 'upper_limit'), help = "<RNNs only> Limits for # rnn layers")
+parser.add_argument("--num_units", type = int, nargs = 2, default = [32,128], metavar = ('lower_limit', 'upper_limit'), help = "<RNNs only> Limits for # units")
+parser.add_argument("--rnn_layer", type = str, default='gru', help = "Choose from 'gru' or 'lstm'")
+
 args = parser.parse_args()
 
 if args.dl_framework == 'torch':
@@ -55,7 +60,7 @@ elif args.dl_framework == 'tf.keras':
 else:
     raise Exception("framework not support!!!")
 from data.data import get_data_npz, get_data
-from model_search import run_model_search_cnn, run_model_search_mlp
+from model_search import run_model_search_cnn, run_model_search_mlp, run_model_search_rnn
 
 if args.dataset[-4:] == '.npz':
     # use .npz files
@@ -85,3 +90,12 @@ elif args.network == 'mlp':
                          drop_probs=args.drop_probs_mlp,
                          num_best=args.num_best, prior_time=args.prior_time)
 
+elif args.network == 'rnn':
+    run_model_search_rnn(data=data, dataset_code=dataset_code,
+                         input_size=args.input_size, output_size=args.output_size, problem_type=args.problem_type, verbose=args.verbose,
+                         wc=args.wc, penalize=args.penalize, tbar_epoch=args.tbar_epoch, numepochs=args.numepochs, val_patience=args.val_patience,
+                         bo_prior_states=args.bo_prior_states, bo_steps=args.bo_steps, bo_explore=args.bo_explore,
+                         num_rnn_layers = args.num_rnn_layers, num_units = args.num_units, rnn_layer = args.rnn_layer,
+                         num_hidden_layers=args.num_hidden_layers, hidden_nodes=args.hidden_nodes, lr=args.lr, weight_decay=args.weight_decay, batch_size=args.batch_size,
+                         drop_probs=args.drop_probs_mlp,
+                         num_best=args.num_best, prior_time=args.prior_time)

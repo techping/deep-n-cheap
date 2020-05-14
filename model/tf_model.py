@@ -29,6 +29,8 @@ net_kws_defaults = {
                     'hidden_mlp': [],
                     'apply_dropouts_mlp': [1],
                     'dropout_probs_mlp': [0.2],
+                    'gru': [],
+                    'lstm': [],
                     }
 
 run_kws_defaults = {
@@ -90,6 +92,51 @@ class Net(tf.keras.Model):
         super(Net, self).__init__()
         self.act = kw['act'] if 'act' in kw else net_kws_defaults['act']
         #self.input = tf.keras.layers.Input(shape=input_size)   
+
+        self.is_rnn = False
+        total_words = 10000
+        max_review_len = 80
+        embedding_len = 100
+        
+        # print(kw)
+        self.gru = {}
+        self.lstm = {}
+        self.embedding = {}
+        self.outlayer = {}
+        if 'gru' in kw:
+            self.is_rnn = True
+            self.embedding = tf.keras.layers.Embedding(total_words,
+                                          embedding_len,
+                                          input_length=max_review_len)
+
+            self.grus = kw['gru']
+            self.num_layers_gru = len(self.grus)
+            
+            for i in range(1, self.num_layers_gru):
+                self.gru['gru-{0}'.format(i-1)] = tf.keras.layers.GRU(self.grus[i-1], dropout=0.5,
+                                return_sequences=True,
+                                unroll=True)
+            
+            self.gru['gru-{0}'.format(self.num_layers_gru-1)] = tf.keras.layers.GRU(self.grus[self.num_layers_gru-1], dropout=0.5,
+                                unroll=True)
+            self.outlayer = tf.keras.layers.Dense(2, activation = 'softmax')
+
+        if 'lstm' in kw:
+            self.is_rnn = True
+            self.embedding = tf.keras.layers.Embedding(total_words,
+                                          embedding_len,
+                                          input_length=max_review_len)
+            self.lstms = kw['lstm']
+            self.num_layers_lstm = len(self.lstms)
+            
+            for i in range(1, self.num_layers_lstm):
+                self.lstm['lstm-{0}'.format(i-1)] = tf.keras.layers.LSTM(self.lstms[i-1], dropout=0.5,
+                                return_sequences=True,
+                                unroll=True)
+            
+            self.lstm['lstm-{0}'.format(self.num_layers_lstm-1)] = tf.keras.layers.LSTM(self.lstms[self.num_layers_lstm-1], dropout=0.5,
+                                unroll=True)
+            self.outlayer = tf.keras.layers.Dense(2, activation = 'softmax')
 
         #### Conv ####
         self.out_channels = kw['out_channels'] if 'out_channels' in kw else net_kws_defaults['out_channels']
@@ -170,23 +217,34 @@ class Net(tf.keras.Model):
     def call(self, inputs):
         rejoin = -1
         x = inputs
-        for layer in self.conv:
-            if isinstance(self.conv[layer], tf.keras.layers.Conv2D):
-                block = int(layer.split('-')[1])
-                if block>0 and self.shortcuts[block-1] == 1:
-                    rejoin = block+1
-                    y = x
-                    count_downsampling = sum(self.apply_maxpools[block:block+2]) + sum(self.strides[block:block+2]) - 2
-                    for _ in range(count_downsampling):
-                        y = tf.keras.layers.AveragePooling2D(pool_size=(2, 2))(y)
+        if self.is_rnn == True:
+            x = self.embedding(x)
+            for layer in self.gru:
+                x = self.gru[layer](x)
+            for layer in self.lstm:
+                x = self.lstm[layer](x)
+            x = tf.keras.layers.Flatten()(x)
+            # for layer in self.mlp:
+            #     x = self.mlp[layer](x) 
+            x = self.outlayer(x) # RNN
+        else:
+            for layer in self.conv:
+                if isinstance(self.conv[layer], tf.keras.layers.Conv2D):
+                    block = int(layer.split('-')[1])
+                    if block>0 and self.shortcuts[block-1] == 1:
+                        rejoin = block+1
+                        y = x
+                        count_downsampling = sum(self.apply_maxpools[block:block+2]) + sum(self.strides[block:block+2]) - 2
+                        for _ in range(count_downsampling):
+                            y = tf.keras.layers.AveragePooling2D(pool_size=(2, 2))(y)
 
-                    y = tf.pad(y,[[0,0],[0,0],[0,0],[0,self.out_channels[block+1] - self.out_channels[block-1]]], 'CONSTANT')
-            if block==rejoin and 'act' in layer: #add shortcut to residual just before activation
-                x = tf.keras.layers.Add()([x, y])
-            x = self.conv[layer](x)
-        x = tf.keras.layers.Flatten()(x)
-        for layer in self.mlp:
-            x = self.mlp[layer](x)
+                        y = tf.pad(y,[[0,0],[0,0],[0,0],[0,self.out_channels[block+1] - self.out_channels[block-1]]], 'CONSTANT')
+                if block==rejoin and 'act' in layer: #add shortcut to residual just before activation
+                    x = tf.keras.layers.Add()([x, y])
+                x = self.conv[layer](x)
+            x = tf.keras.layers.Flatten()(x)
+            for layer in self.mlp:
+                x = self.mlp[layer](x) 
         return x
 
 

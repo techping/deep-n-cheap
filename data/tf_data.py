@@ -21,6 +21,14 @@ def get_data(data_folder = './', dataset = "mnist", val_split = 1/5, augment = T
         (xtr, ytr), (xte, yte) = tf.keras.datasets.cifar10.load_data()
     elif dataset == 'cifar100':
         (xtr, ytr), (xte, yte) = tf.keras.datasets.cifar100.load_data()
+    elif dataset == 'imdb':
+        total_words = 10000
+        max_review_len = 80
+        (xtr, ytr), (xte, yte) = tf.keras.datasets.imdb.load_data(num_words=total_words)
+        xtr = tf.keras.preprocessing.sequence.pad_sequences(xtr,
+                                                            maxlen=max_review_len)
+        xte = tf.keras.preprocessing.sequence.pad_sequences(xte,
+                                                            maxlen=max_review_len)
     else:
         raise Exception("dataset not supported!!!")
 

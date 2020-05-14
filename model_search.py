@@ -20,7 +20,7 @@ def convert_keys(state_keys):
     ''' Convert state keys to covmat keys '''
     cov_keys = []
     for key in state_keys:
-        if key in ['out_channels','hidden_mlp','lr','weight_decay','batch_size']:
+        if key in ['out_channels','hidden_mlp','lr','weight_decay','batch_size','gru', 'lstm']:
             cov_keys.append(key)
     return cov_keys
 
@@ -66,7 +66,8 @@ def get_states(numstates = 15,
                samp = 'sobol', nsv = 20,
                limits = {'num_conv_layers':(4,8), 'out_channels_first':(16,64), 'out_channels':(0,512),
                          'num_hidden_layers_mlp':(0,3), 'hidden_nodes_mlp':(50,1000),
-                         'lr':(-5,-1), 'weight_decay':(-6,-3), 'batch_size':(32,512)}
+                         'lr':(-5,-1), 'weight_decay':(-6,-3), 'batch_size':(32,512),
+                         'num_rnn_layers':(1,3), 'num_units':(32,128),}
                ):
     '''
     *** Generate a number of states ***
@@ -86,7 +87,40 @@ def get_states(numstates = 15,
     elif samp == 'random':
         samp = np.random.rand(numstates,nsv)
     si = np.random.randint(nsv) #samp column index. pick a random place to start from
+    
+
+    ## RNN ##
+    if 'gru' in state_keys:
+        ## num_rnn_layers ##
+        lower, upper = limits['num_rnn_layers']
+        num_rnn_layers = (lower + samp[:,si%nsv]*(upper+1-lower)).astype('int') #casting to int is flooring, hence doing upper+1
+        si += 1
         
+        ## num_units ##
+        lower, upper = limits['num_units']
+        grus = []
+        for _ in range(limits['num_rnn_layers'][1]):
+            grus.append( (lower + samp[:,si%nsv]*(upper+1-lower)).astype('int') ) #single layer for all states
+            si += 1
+        grus = np.asarray(grus) #shape = (upper_limit_num_rnn_layers, numstates)
+        for n in range(numstates):
+            states[n]['gru'] = list(grus[:num_rnn_layers[n],n])
+
+    if 'lstm' in state_keys:
+        ## num_rnn_layers ##
+        lower, upper = limits['num_rnn_layers']
+        num_rnn_layers = (lower + samp[:,si%nsv]*(upper+1-lower)).astype('int') #casting to int is flooring, hence doing upper+1
+        si += 1
+        
+        ## num_units ##
+        lower, upper = limits['num_units']
+        lstms = []
+        for _ in range(limits['num_rnn_layers'][1]):
+            lstms.append( (lower + samp[:,si%nsv]*(upper+1-lower)).astype('int') ) #single layer for all states
+            si += 1
+        lstms = np.asarray(lstms) #shape = (upper_limit_num_rnn_layers, numstates)
+        for n in range(numstates):
+            states[n]['lstm'] = list(lstms[:num_rnn_layers[n],n])
     
     ## out_channels ##
     if 'out_channels' in state_keys:
@@ -310,6 +344,20 @@ def covmat(S1, S2,
                     elif key == 'hidden_mlp':
                         kern = kernelfunc( distancefunc( np.sum(s1[key]), np.sum(s2[key]), omega=omega[key], upper=limits[key][0][1], lower=limits[key][0][0], root=2 ) )
                         kern += kernelfunc( distancefunc( len(s1[key]), len(s2[key]), omega=omega[key], upper=limits[key][1][1], lower=limits[key][1][0] ) )
+                        kern /= 2
+
+                    elif key == 'gru':
+                        kern = kernelfunc( distancefunc( np.sum(s1[key]), np.sum(s2[key]), omega=omega[key], 
+                                                        upper=limits[key][0][1], lower=limits[key][0][0], root=2 ) )
+                        kern += kernelfunc( distancefunc( len(s1[key]), len(s2[key]), omega=omega[key], 
+                                                        upper=limits[key][1][1], lower=limits[key][1][0] ) )
+                        kern /= 2
+
+                    elif key == 'lstm':
+                        kern = kernelfunc( distancefunc( np.sum(s1[key]), np.sum(s2[key]), omega=omega[key], 
+                                                        upper=limits[key][0][1], lower=limits[key][0][0], root=2 ) )
+                        kern += kernelfunc( distancefunc( len(s1[key]), len(s2[key]), omega=omega[key], 
+                                                        upper=limits[key][1][1], lower=limits[key][1][0] ) )
                         kern /= 2
                     
                     else:
@@ -1240,3 +1288,189 @@ def run_model_search_mlp(data, dataset_code,
     with open('./results.pkl','wb') as f:
         pickle.dump(final_records,f)
 
+
+# =============================================================================
+# RNN search
+# Tianyi Zhang, USC
+# =============================================================================
+def run_model_search_rnn(data, dataset_code,
+                         input_size, output_size, problem_type, verbose,
+                         wc, penalize, tbar_epoch, numepochs, val_patience,
+                         bo_prior_states, bo_steps, bo_explore,
+                         num_rnn_layers, num_units, rnn_layer,
+                         num_hidden_layers, hidden_nodes, lr, weight_decay, batch_size,
+                         drop_probs, 
+                         num_best, prior_time):
+
+    ## Data, etc ##
+    run_network_kw = {
+        'data': data,
+        'input_size': input_size,
+        'output_size': output_size,
+        'problem_type': problem_type,
+        'verbose': verbose
+        }
+    
+    ## Covmat params ##
+    distancefunc = distancefunc_ramp
+    kernelfunc = kernelfunc_se
+    
+    ## BO params ##
+    out_channels_bo = {'steps':bo_steps, 'initial_states_size':bo_prior_states, 'new_states_size':bo_explore}
+    training_hyps_bo = {'steps':bo_steps, 'initial_states_size':bo_prior_states, 'new_states_size':bo_explore, 'num_best':num_best}
+    
+    get_states_limits = {'num_rnn_layers':num_rnn_layers, 'num_units':num_units, 
+                        #  'num_hidden_layers_mlp':num_hidden_layers, 'hidden_nodes_mlp':hidden_nodes,
+                         'lr':lr, 'weight_decay':weight_decay, 'batch_size':batch_size}
+    
+    if penalize == 't_epoch':
+        penalize_bar = tbar_epoch
+    else: #numparams
+        penalize_bar = get_states_limits['hidden_nodes_mlp'][1] * (run_network_kw['input_size'][0] + run_network_kw['output_size'] + (get_states_limits['num_hidden_layers_mlp'][1]-1)*get_states_limits['hidden_nodes_mlp'][1]) #total weights
+        penalize_bar += (get_states_limits['num_hidden_layers_mlp'][1 ] * get_states_limits['hidden_nodes_mlp'][1] + run_network_kw['output_size']) #total biases
+
+    
+    start_time = time.time()
+# =============================================================================
+#     Step 1: Bayesian optimization for number of hidden layers and nodes
+# =============================================================================
+    print('STARTING RNN')
+    the_best_states, the_best_loss_stats = bayesopt(
+                                                    state_kw = {
+                                                                'state_keys': [rnn_layer],
+                                                                'limits': get_states_limits
+                                                                },
+                                                    loss_kw = {
+                                                                'net_kw_const': {},
+                                                                'run_kw_const': {},
+                                                                'val_patience': val_patience,
+                                                                'numepochs': numepochs,
+                                                                'dataset_code': dataset_code,
+                                                                'run_network_kw': run_network_kw,
+                                                                'penalize': penalize,
+                                                                'wc': wc,
+                                                                'tbar_epoch' if penalize == 't_epoch' else 'numparams_bar': penalize_bar,
+                                                                'problem_type': problem_type
+                                                            },
+                                                     mu_val = None,
+                                                     covmat_kw = {
+                                                                 'distancefunc': distancefunc,
+                                                                 'kernelfunc': kernelfunc,
+                                                                 'limits': {
+                                                                             rnn_layer: [ (0, get_states_limits['num_rnn_layers'][1]*get_states_limits['num_units'][1]), get_states_limits['num_rnn_layers'] ]
+                                                                             },
+                                                                 },
+                                                    cov_keys = [rnn_layer], #specify that only 'out_channels' is being searched over
+                                                     **out_channels_bo
+                                                     )
+    print('TOTAL SEARCH TIME = {0}\n\n'.format(time.time()-start_time+prior_time))
+    
+    
+# =============================================================================
+#     Step 2: Fine-tuning architecture using grid search
+# =============================================================================
+ 
+    ## Initialization ##
+    the_best_state = the_best_states[0]
+    the_best_loss = the_best_loss_stats[0]['loss']
+    the_best_loss_val_acc = the_best_loss_stats[0]['best_val_acc']
+    the_best_loss_penalize = the_best_loss_stats[0][penalize]
+    num_rnn_layers = len(the_best_state[rnn_layer])
+    
+    # ## Dropout MLP ##
+    # print('STARTING dropout')
+    # best_state, best_loss, loss_stats = dropout_mlp(
+    #                                                 num_rnn_layers = num_rnn_layers,
+    #                                                 drop_probs = drop_probs,
+    #                                                 loss_kw = {
+    #                                                             'net_kw_const': the_best_state,
+    #                                                             'run_kw_const': {},
+    #                                                             'val_patience': val_patience,
+    #                                                             'numepochs': numepochs,
+    #                                                             'dataset_code': dataset_code,
+    #                                                             'run_network_kw': run_network_kw,
+    #                                                             'penalize': penalize,
+    #                                                             'wc': wc,
+    #                                                             'tbar_epoch' if penalize == 't_epoch' else 'numparams_bar': penalize_bar
+    #                                                         }
+    #                                             )
+    # if best_loss < the_best_loss:
+    #     the_best_state.update(best_state)
+    #     the_best_loss = best_loss
+    #     the_best_loss_val_acc = loss_stats['best_val_acc']
+    #     the_best_loss_penalize = loss_stats[penalize]
+    # else:
+    #     the_best_state.update( {'apply_dropouts_mlp': num_hidden_layers * net_kws_defaults['apply_dropouts_mlp'],
+    #                             'dropout_probs_mlp': num_hidden_layers * net_kws_defaults['dropout_probs_mlp']} )
+    # print('BEST STATE: {0}, BEST LOSS = {1}, corresponding BEST VAL_ACC = {2} and {3} = {4}, TOTAL SEARCH TIME = {5}\n\n'.format(the_best_state, the_best_loss, the_best_loss_val_acc, penalize, the_best_loss_penalize, time.time()-start_time+prior_time))
+    
+    
+# =============================================================================
+#     Step 3: Bayesian optimization for training hyperparameters
+# =============================================================================
+    print('STARTING training hyperparameters')
+    final_best_states, final_best_loss_stats = bayesopt(
+                                                        state_kw = {
+                                                                    'state_keys': ['lr','weight_decay','batch_size'],
+                                                                    'limits': get_states_limits,
+                                                                    },
+                                                        loss_kw = {
+                                                                    'net_kw_const': the_best_state,
+                                                                    'run_kw_const': {},
+                                                                    'val_patience': val_patience,
+                                                                    'numepochs': numepochs,
+                                                                    'dataset_code': dataset_code,
+                                                                    'run_network_kw': run_network_kw,
+                                                                    'penalize': penalize,
+                                                                    'wc': wc,
+                                                                    'tbar_epoch' if penalize == 't_epoch' else 'numparams_bar': penalize_bar,
+                                                                    'problem_type': problem_type
+                                                                },
+                                                         mu_val = None,
+                                                         covmat_kw = {
+                                                                     'distancefunc': distancefunc,
+                                                                     'kernelfunc': kernelfunc,
+                                                                     'limits': get_states_limits, #those are also valid for training hyps
+                                                                     },
+                                                         **training_hyps_bo
+                                                         )
+    
+    ## Append architectures ##
+    for i in range(len(final_best_states)): 
+        final_best_states[i] = { **the_best_state, **final_best_states[i] }
+    
+    ## Calculate number of parameters and default weight decay, then append existing state to final ##
+    final_best_states.append({ **the_best_state, 
+                               **{'lr': run_kws_defaults['lr'],
+                                'weight_decay': default_weight_decay( dataset_code = dataset_code, input_size = run_network_kw['input_size'], output_size = run_network_kw['output_size'], net_kw = the_best_state ),
+                                'batch_size': run_kws_defaults['batch_size']}
+                              })
+    final_best_loss_stats.append({'loss':the_best_loss, 'best_val_acc':the_best_loss_val_acc, penalize:the_best_loss_penalize})
+    
+    
+# =============================================================================
+#     Final stats and records
+# =============================================================================
+    final_losses = np.asarray([fbls['loss'] for fbls in final_best_loss_stats])
+    poses = np.argsort(final_losses)[:training_hyps_bo['num_best']]
+    final_best_states = [ final_best_states[pos] for pos in poses ]
+    final_best_losses = final_losses[poses]
+    final_best_losses_val_accs = [ final_best_loss_stats[pos]['best_val_acc'] for pos in poses ]
+    final_best_losses_penalizes = [ final_best_loss_stats[pos][penalize] for pos in poses ]
+    
+    total_search_time = time.time()-start_time+prior_time
+    
+    print('\n*---* DRUMROLL... ANNOUNCING BESTS *---*')
+    for i, fbs in enumerate(final_best_states):
+        print('\n#{0}: STATE = {1}, LOSS = {2}, VAL_ACC = {3}, {4} = {5}'.format(i+1, fbs, final_best_losses[i], final_best_losses_val_accs[i], penalize, final_best_losses_penalizes[i]))
+    print('\nTOTAL SEARCH TIME = {0} sec = {1} hrs'.format(total_search_time,total_search_time/3600))
+    
+    final_records = {
+                    'final_best_states': final_best_states,
+                    'final_best_losses': final_best_losses,
+                    'final_best_losses_val_accs': final_best_losses_val_accs,
+                    'final_best_losses_penalizes': final_best_losses_penalizes,
+                    'total_search_time': total_search_time/3600 #in hours
+                    }
+    with open('./results.pkl','wb') as f:
+        pickle.dump(final_records,f)
